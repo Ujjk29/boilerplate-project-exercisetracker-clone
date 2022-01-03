@@ -91,11 +91,6 @@ app.post(
         else
             logDoc.logx.push(exerciseData);
         await logDoc.save();
-        console.log({
-            username: username,
-            _id: userId,
-            log: logDoc.logx
-        });
         res.send({
             username: username,
             _id: userId,
@@ -106,15 +101,8 @@ app.post(
     }
 );
 
-function formatLogs(logs) {
-    for (let i=0;i<logs.length;i++) {
-        delete logs[i]['_id'];
-    }
-    return logs;
-}
-
 app.get(
-    '/api/users/:_id/logs',
+    '/api/users/:_id/logs?',
     async function (req, res) {
         let userId = req.params._id;
         let userDoc = await User.findById(userId).exec();
@@ -124,44 +112,34 @@ app.get(
             let fromDate = new Date(req.query.from).getTime();
             let toDate = new Date(req.query.to).getTime();
             let limit = req.query.limit || logDoc.logx.length;
-            console.log("From date: " + fromDate);
-            console.log("To date: " + toDate);
-            console.log("Limit: " + limit);
             let count = 0;
             let originalLogs = logDoc.logx;
             let modifiedLogs = [];
             for (let i=0;i<originalLogs.length;i++) {
                 let currDate = new Date(originalLogs[i].date).getTime();
-                console.log("Current date: " + currDate);
                 if (fromDate<currDate && currDate<toDate && count<limit) {
                     modifiedLogs.push(originalLogs[i]);
                     count++;
                 }
             }
-            modifiedLogs = formatLogs(modifiedLogs);
-            console.log("Query logs: ");
-            console.log({
-                username: username,
-                count: count,
-                _id: userId,
-                log: modifiedLogs
-            });
             res.send({
                 username: username,
                 count: count,
                 _id: userId,
                 log: modifiedLogs
             });
-        } else {
+        } else if (req.query.limit) {
+            let limit = req.query.limit;
+            logDoc.logx = logDoc.logx.slice(0,limit);
             let count = logDoc.logx.length;
-            logDoc.logx = formatLogs(logDoc.logx);
-            console.log("All logs: ");
-            console.log({
+            res.send({
                 username: username,
                 count: count,
                 _id: userId,
                 log: logDoc.logx
             });
+        } else {
+            let count = logDoc.logx.length;
             res.send({
                 username: username,
                 count: count,
